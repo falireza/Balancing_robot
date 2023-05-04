@@ -1,0 +1,69 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <MPU6050_tockn.h>
+#include <PID_v1.h>
+
+// Pin definitions
+const int enA = 9;
+const int enB = 10;
+const int in1 = 7;
+const int in2 = 6;
+const int in3 = 5;
+const int in4 = 4;
+
+// MPU6050 and PID settings
+MPU6050 mpu6050(Wire);
+double gyroAngle, currentAngle, targetAngle = 0;
+double pidInput, pidOutput, pidSetpoint;
+double Kp = 2, Ki = 5, Kd = 1;
+PID pid(&pidInput, &pidOutput, &pidSetpoint, Kp, Ki, Kd, DIRECT);
+
+void setup() {
+  // Set all motor control pins to output mode
+  pinMode(enA, OUTPUT);
+  pinMode(enB, OUTPUT);
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(in3, OUTPUT);
+  pinMode(in4, OUTPUT);
+
+  // Start I2C communication and initialize MPU6050
+  Wire.begin();
+  mpu6050.begin();
+  mpu6050.calcGyroOffsets(true);
+
+  // Configure PID
+  pid.SetMode(AUTOMATIC);
+  pid.SetSampleTime(10);
+  pid.SetOutputLimits(-255, 255);
+}
+
+void loop() {
+  // Update MPU6050 data
+  mpu6050.update();
+
+  // Calculate the current angle using the accelerometer and gyroscope
+  gyroAngle = mpu6050.getAngleX();
+  currentAngle = gyroAngle;
+  pidInput = currentAngle;
+
+  // Compute PID output
+  pid.Compute();
+
+  // Control motors based on PID output
+  if (pidOutput > 0) {
+    analogWrite(enA, abs(pidOutput));
+    analogWrite(enB, abs(pidOutput));
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
+    digitalWrite(in3, HIGH);
+    digitalWrite(in4, LOW);
+  } else {
+    analogWrite(enA, abs(pidOutput));
+    analogWrite(enB, abs(pidOutput));
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+  }
+}
