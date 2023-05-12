@@ -15,10 +15,11 @@ const int in4 = 4;
 MPU6050 mpu6050(Wire);
 double gyroAngle, currentAngle, targetAngle = 0;
 double pidInput, pidOutput, pidSetpoint;
-double Kp = 2, Ki = 5, Kd = 1;
+double Kp = 1, Ki = 5, Kd = 0.5;
 PID pid(&pidInput, &pidOutput, &pidSetpoint, Kp, Ki, Kd, DIRECT);
 
 void setup() {
+  Serial.begin(115200);
   // Set all motor control pins to output mode
   pinMode(enA, OUTPUT);
   pinMode(enB, OUTPUT);
@@ -43,13 +44,16 @@ void loop() {
   mpu6050.update();
 
   // Calculate the current angle using the accelerometer and gyroscope
-  gyroAngle = mpu6050.getAngleX();
+  //gyroAngle = mpu6050.getAngleX();
+  gyroAngle = mpu6050.getGyroAngleY();
   currentAngle = gyroAngle;
   pidInput = currentAngle;
 
   // Compute PID output
   pid.Compute();
-
+  Serial.print(gyroAngle); Serial.print(" ");
+  Serial.println(pidOutput);
+ 
   // Control motors based on PID output
   if (pidOutput > 0) {
     analogWrite(enA, abs(pidOutput));
